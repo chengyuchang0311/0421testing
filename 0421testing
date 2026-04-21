@@ -1,0 +1,899 @@
+import { useState } from "react";
+
+const TOPICS = {
+  learning: {
+    label: "學習",
+    subtitle: "概念與知識",
+    color: "#2E6B8A",
+    lightColor: "#E8F4F8",
+    borderColor: "#B8D8E8",
+    items: [
+      { id: "character", name: "品格鍛鍊", desc: "七大品格、品格學習指標" },
+      { id: "sel", name: "SEL 社會情緒學習課程", desc: "CASEL 五大能力、TSEL、課程模組" },
+      { id: "dual", name: "雙重目的領域融入", desc: "學科教學融入非認知能力練習" },
+    ],
+  },
+  practice: {
+    label: "練習",
+    subtitle: "日常互動與鍛鍊",
+    color: "#5A8A6E",
+    lightColor: "#EDF5F0",
+    borderColor: "#B8D8C4",
+    items: [
+      { id: "dialogue", name: "對話語言與姿態", desc: "善意溝通、薩提爾一致性姿態" },
+      { id: "language", name: "品格與成長型語言", desc: "日常微時刻中的語言實踐" },
+      { id: "classroom", name: "班級經營練習", desc: "以身言制境形塑正向教室文化" },
+      { id: "ef", name: "執行功能鍛鍊", desc: "七子策略融入班級與特教協作" },
+    ],
+  },
+  system: {
+    label: "制度",
+    subtitle: "全校性營造與推動",
+    color: "#8B6B3D",
+    lightColor: "#F8F2E8",
+    borderColor: "#D8C8A8",
+    items: [
+      { id: "circle", name: "圍圈指南", desc: "班級與全校圍圈的帶領方法" },
+      { id: "routine", name: "例行事務規劃", desc: "品格作業、成長卡、全校節奏" },
+      { id: "event", name: "大型活動融入", desc: "校級活動中的非認知能力練習" },
+    ],
+  },
+  incident: {
+    label: "事件",
+    subtitle: "機會教育的真實實踐",
+    color: "#8B5A6B",
+    lightColor: "#F8EDF2",
+    borderColor: "#D8B8C8",
+    items: [
+      { id: "sbior", name: "SBIOR 事件復盤", desc: "SBIOR 對話模式的操作與練習" },
+      { id: "micro", name: "微時刻故事", desc: "各校真實的非認知能力教育故事" },
+    ],
+  },
+};
+
+const ROLES = [
+  { id: "homeroom", label: "導師", icon: "👩‍🏫", desc: "班級經營的核心推動者" },
+  { id: "noncog", label: "非認知主題科任", icon: "🎯", desc: "品格課、SEL 課的專任教師" },
+  { id: "subject", label: "學科科任", icon: "📐", desc: "透過雙重目的融入非認知練習" },
+  { id: "admin", label: "行政", icon: "📋", desc: "全校制度與活動的規劃執行" },
+  { id: "leader", label: "行政領導人", icon: "🏫", desc: "全校推動的策略規劃與文化營造" },
+];
+
+// Sample data for topic page
+const SAMPLE_RESOURCES = [
+  { id: 1, name: "KIST 圍圈帶領指南", type: "指南", typeColor: "#2E6B8A", desc: "含圍圈前準備、帶領流程、常見 QA，適合第一次帶圍圈的導師使用", source: "教學發展組產出" },
+  { id: 2, name: "品格圈教學簡報", type: "簡報", typeColor: "#D4820A", desc: "品格圈的設計原則與帶領範例，含 30 頁實作引導", source: "教學發展組產出" },
+  { id: 3, name: "圍圈示範影片", type: "影片", typeColor: "#C0392B", desc: "三民國中導師實際帶領班級圍圈的完整紀錄", source: "三民國中實踐經驗" },
+  { id: 4, name: "圍圈引導語範例集", type: "範例", typeColor: "#B49B6E", desc: "依主題分類的圍圈引導語，含情緒覺察、品格反思、事件討論三大類", source: "聯盟學校共創" },
+];
+
+const SAMPLE_RESOURCES_2 = [
+  { id: 5, name: "全校圍圈規劃指南", type: "指南", typeColor: "#2E6B8A", desc: "晨圈、品格圈、夕圈的全校排程與帶領分工建議", source: "教學發展組產出" },
+  { id: 6, name: "家族制運作手冊", type: "指南", typeColor: "#2E6B8A", desc: "跨年級家族制的分組方式、活動設計與運作經驗", source: "拯民國小實踐經驗" },
+];
+
+const SAMPLE_STORIES = [
+  { id: 1, school: "峨眉國中", title: "開學共識營如何用圍圈建立全校共識", excerpt: "開學第一天，全校師生在操場圍成一個大圈，這是峨眉國中每年的傳統..." },
+  { id: 2, school: "三民國中", title: "導師第一次帶班級圍圈的心得", excerpt: "從完全不知道怎麼帶，到現在學生會主動要求『老師我們來圍圈』..." },
+];
+
+// ========== COMPONENTS ==========
+
+function TopicCard({ item, blockColor, lightColor, borderColor, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onClick}
+      style={{
+        background: hovered ? lightColor : "#FFFFFF",
+        border: `1.5px solid ${hovered ? blockColor : borderColor}`,
+        borderRadius: 10,
+        padding: "14px 16px",
+        cursor: "pointer",
+        transition: "all 0.25s ease",
+        transform: hovered ? "translateY(-2px)" : "translateY(0)",
+        boxShadow: hovered ? `0 6px 20px ${blockColor}20` : "0 1px 4px rgba(0,0,0,0.04)",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3.5, background: blockColor, borderRadius: "10px 0 0 10px", opacity: hovered ? 1 : 0.4, transition: "opacity 0.25s ease" }} />
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#2C3E50", marginBottom: 4, letterSpacing: "0.01em" }}>{item.name}</div>
+      <div style={{ fontSize: 12, color: "#7F8C9B", lineHeight: 1.5 }}>{item.desc}</div>
+      {hovered && <div style={{ marginTop: 8, fontSize: 11, color: blockColor, fontWeight: 500 }}>探索主題 →</div>}
+    </div>
+  );
+}
+
+function ResourceCard({ resource }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? "#FAFBFC" : "#FFFFFF",
+        border: `1.5px solid ${hovered ? "#C0C8D2" : "#ECEEF1"}`,
+        borderRadius: 10,
+        padding: "16px",
+        cursor: "pointer",
+        transition: "all 0.25s ease",
+        transform: hovered ? "translateY(-1px)" : "translateY(0)",
+        boxShadow: hovered ? "0 4px 16px rgba(0,0,0,0.06)" : "0 1px 3px rgba(0,0,0,0.03)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{
+          fontSize: 11, fontWeight: 600, color: "#FFFFFF", background: resource.typeColor,
+          padding: "2px 8px", borderRadius: 4, letterSpacing: "0.03em",
+        }}>{resource.type}</span>
+        <span style={{ fontSize: 11, color: "#A0AAB6" }}>{resource.source}</span>
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#2C3E50", lineHeight: 1.4 }}>{resource.name}</div>
+      <div style={{ fontSize: 12, color: "#7F8C9B", lineHeight: 1.6 }}>{resource.desc}</div>
+      <div style={{
+        marginTop: 4, display: "flex", alignItems: "center", gap: 6,
+        fontSize: 12, fontWeight: 500, color: hovered ? "#2E6B8A" : "#A0AAB6",
+        transition: "color 0.2s ease",
+      }}>
+        <span>查看資源</span>
+        <span>→</span>
+      </div>
+    </div>
+  );
+}
+
+function StoryCard({ story }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? "#FFF9F0" : "#FFFFFF",
+        border: `1.5px solid ${hovered ? "#D8C8A8" : "#ECEEF1"}`,
+        borderRadius: 10,
+        padding: "16px",
+        cursor: "pointer",
+        transition: "all 0.25s ease",
+      }}
+    >
+      <div style={{ fontSize: 11, fontWeight: 600, color: "#B49B6E", marginBottom: 6 }}>{story.school}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#2C3E50", marginBottom: 6, lineHeight: 1.4 }}>{story.title}</div>
+      <div style={{ fontSize: 12, color: "#8896A6", lineHeight: 1.6 }}>{story.excerpt}</div>
+      {hovered && <div style={{ marginTop: 8, fontSize: 12, fontWeight: 500, color: "#B49B6E" }}>閱讀故事 →</div>}
+    </div>
+  );
+}
+
+function FrameworkBlock({ blockKey, block, isActive, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const active = isActive || hovered;
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: active ? block.lightColor : "#FFFFFF",
+        border: `2px solid ${active ? block.color : "#E0E4E8"}`,
+        borderRadius: 14,
+        padding: "18px 16px",
+        cursor: "pointer",
+        transition: "all 0.3s ease",
+        transform: active ? "scale(1.03)" : "scale(1)",
+        boxShadow: active ? `0 8px 24px ${block.color}18` : "0 2px 8px rgba(0,0,0,0.04)",
+        textAlign: "center",
+        position: "relative",
+      }}
+    >
+      <div style={{
+        background: block.color, color: "#fff", width: 40, height: 40, borderRadius: 10,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontWeight: 700, fontSize: 15, margin: "0 auto 10px",
+        boxShadow: `0 3px 12px ${block.color}30`,
+      }}>{block.label}</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#2C3E50", marginBottom: 3 }}>{block.label}</div>
+      <div style={{ fontSize: 12, color: "#8896A6" }}>{block.subtitle}</div>
+      <div style={{ fontSize: 11, color: active ? block.color : "#B0B8C4", marginTop: 6, fontWeight: 500, transition: "color 0.2s" }}>
+        {block.items.length} 個主題 {active ? "↓" : ""}
+      </div>
+      {isActive && (
+        <div style={{
+          position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50)",
+          width: 16, height: 16, background: block.lightColor, border: `2px solid ${block.color}`,
+          borderTop: "none", borderLeft: "none",
+          transform: "translateX(-50%) rotate(45deg)",
+        }} />
+      )}
+    </div>
+  );
+}
+
+function RoleCard({ role, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? "#F7F3EE" : "#FFFFFF",
+        border: `1.5px solid ${hovered ? "#C8A96E" : "#E8E0D4"}`,
+        borderRadius: 12, padding: "18px 16px", cursor: "pointer",
+        transition: "all 0.25s ease",
+        transform: hovered ? "translateY(-2px)" : "translateY(0)",
+        boxShadow: hovered ? "0 6px 20px rgba(180,155,110,0.15)" : "0 1px 4px rgba(0,0,0,0.03)",
+        textAlign: "center", minWidth: 0,
+      }}
+    >
+      <div style={{ fontSize: 28, marginBottom: 8 }}>{role.icon}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#2C3E50", marginBottom: 4 }}>{role.label}</div>
+      <div style={{ fontSize: 12, color: "#8896A6", lineHeight: 1.5 }}>{role.desc}</div>
+      {hovered && <div style={{ marginTop: 10, fontSize: 12, color: "#B49B6E", fontWeight: 500 }}>查看建議路徑 →</div>}
+    </div>
+  );
+}
+
+// Role path data
+const ROLE_PATHS = {
+  homeroom: {
+    label: "導師",
+    icon: "👩‍🏫",
+    intro: "作為導師，你是學生每天最密集接觸的大人。你的班級就是非認知能力最重要的練習場——每一次互動、每一個常規、每一次衝突處理，都是學生學習的機會。",
+    steps: [
+      { topic: "班級經營練習", block: "練習", blockColor: "#5A8A6E", why: "這是你最核心的工作場域。透過身言制境四個維度，系統性地打造一個支持學生成長的教室文化。", priority: "核心" },
+      { topic: "對話語言與姿態", block: "練習", blockColor: "#5A8A6E", why: "你每天跟學生說的話、回應的方式，決定了教室的氛圍。善意溝通和一致性姿態是所有互動的底層語言。", priority: "核心" },
+      { topic: "圍圈指南", block: "制度", blockColor: "#8B6B3D", why: "圍圈是你班級經營的核心工具。建議從班級圍圈開始，每週至少一次，讓學生練習傾聽與表達。", priority: "核心" },
+      { topic: "品格與成長型語言", block: "練習", blockColor: "#5A8A6E", why: "在日常對話中有意識地使用品格語言和成長型語言，讓非認知能力的培養自然融入每一個微時刻。", priority: "重要" },
+      { topic: "SBIOR 事件復盤", block: "事件", blockColor: "#8B5A6B", why: "學生之間的衝突和突發事件是最真實的學習機會。SBIOR 幫助你把事件轉化為師生共同成長的契機。", priority: "重要" },
+      { topic: "執行功能鍛鍊", block: "練習", blockColor: "#5A8A6E", why: "理解執行功能的七子策略，幫助你在班級經營中支持學生發展自我管理的能力，特別是需要額外支持的學生。", priority: "延伸" },
+      { topic: "品格鍛鍊", block: "學習", blockColor: "#2E6B8A", why: "深入認識七大品格的定義與指標，讓你在班級中能更精準地辨識和培養學生的品格優勢。", priority: "延伸" },
+      { topic: "SEL 社會情緒學習課程", block: "學習", blockColor: "#2E6B8A", why: "如果你同時負責班級的 SEL 課程，這裡有完整的課程模組和各校的課程計畫可以參考。", priority: "延伸" },
+    ],
+  },
+  noncog: {
+    label: "非認知主題科任",
+    icon: "🎯",
+    intro: "作為品格課或 SEL 課的專任教師，你是學生系統性認識非認知能力的主要引導者。你的課程設計和帶領方式，直接影響學生對自我覺察、人際互動和負責任決定的學習。",
+    steps: [
+      { topic: "品格鍛鍊", block: "學習", blockColor: "#2E6B8A", why: "你需要深入掌握七大品格的定義、學習指標，才能設計出有目標、有層次的品格課程。", priority: "核心" },
+      { topic: "SEL 社會情緒學習課程", block: "學習", blockColor: "#2E6B8A", why: "CASEL 五大能力是你課程設計的理論骨幹，這裡有世界銀行、MM 教材等完整模組可以直接使用。", priority: "核心" },
+      { topic: "對話語言與姿態", block: "練習", blockColor: "#5A8A6E", why: "在帶領品格課和 SEL 課時，你的對話姿態本身就是最重要的身教。", priority: "核心" },
+      { topic: "圍圈指南", block: "制度", blockColor: "#8B6B3D", why: "圍圈是品格課和 SEL 課最常使用的教學形式，掌握帶領方法能大幅提升課程品質。", priority: "重要" },
+      { topic: "品格與成長型語言", block: "練習", blockColor: "#5A8A6E", why: "在課程中示範和練習品格語言，幫助學生把課堂學習延伸到日常生活。", priority: "重要" },
+      { topic: "SBIOR 事件復盤", block: "事件", blockColor: "#8B5A6B", why: "將真實事件帶入課程討論，讓 SEL 學習從抽象概念變成具體實踐。", priority: "延伸" },
+    ],
+  },
+  subject: {
+    label: "學科科任",
+    icon: "📐",
+    intro: "作為學科教師，你的課堂不只是傳授知識的場所——透過雙重目的的教學設計，每一堂課都可以同時鍛鍊學生的認知和非認知能力。",
+    steps: [
+      { topic: "雙重目的領域融入", block: "學習", blockColor: "#2E6B8A", why: "這是你最核心的參考資源。了解如何在學科教學中自然融入非認知能力的練習，而不是額外增加負擔。", priority: "核心" },
+      { topic: "對話語言與姿態", block: "練習", blockColor: "#5A8A6E", why: "你在課堂中回應學生的方式，就是非認知能力的活教材。", priority: "核心" },
+      { topic: "品格與成長型語言", block: "練習", blockColor: "#5A8A6E", why: "在學科課堂中使用成長型語言，幫助學生建立面對挑戰的心態。", priority: "重要" },
+      { topic: "執行功能鍛鍊", block: "練習", blockColor: "#5A8A6E", why: "學科學習本身就是鍛鍊執行功能的好場域——計畫、組織、自我監控都可以融入作業和課堂活動。", priority: "重要" },
+      { topic: "品格鍛鍊", block: "學習", blockColor: "#2E6B8A", why: "認識七大品格，讓你能在學科情境中辨識和肯定學生展現的品格行為。", priority: "延伸" },
+    ],
+  },
+  admin: {
+    label: "行政",
+    icon: "📋",
+    intro: "作為行政夥伴，你是全校非認知能力推動的基礎建設者。你規劃的制度、安排的活動、營造的環境，決定了教師和學生能否在穩定的系統中持續練習。",
+    steps: [
+      { topic: "例行事務規劃", block: "制度", blockColor: "#8B6B3D", why: "你的核心任務——建立全校性的常規節奏，讓非認知能力的練習成為每天自然發生的事。", priority: "核心" },
+      { topic: "圍圈指南", block: "制度", blockColor: "#8B6B3D", why: "排定全校圍圈的時間、確保空間、支持教師帶領。制度穩定是圍圈成為文化的關鍵。", priority: "核心" },
+      { topic: "大型活動融入", block: "制度", blockColor: "#8B6B3D", why: "校級活動是展現全校文化的重要時刻，你的規劃決定了活動能否真正融入非認知能力的練習。", priority: "核心" },
+      { topic: "班級經營練習", block: "練習", blockColor: "#5A8A6E", why: "了解導師在班級中的實踐，讓你能更好地從行政端提供對應的支持。", priority: "重要" },
+      { topic: "對話語言與姿態", block: "練習", blockColor: "#5A8A6E", why: "行政與教師、家長的溝通也需要善意溝通，你的姿態影響整個學校的互動氛圍。", priority: "重要" },
+    ],
+  },
+  leader: {
+    label: "行政領導人",
+    icon: "🏫",
+    intro: "作為校長或主任，你是全校非認知能力推動的策略規劃者和文化營造者。你的願景、決策和身教，決定了這件事能否從個別教師的努力，升級為全校性的文化。",
+    steps: [
+      { topic: "大型活動融入", block: "制度", blockColor: "#8B6B3D", why: "全校性活動是你傳達願景、凝聚共識的最佳場域。從開學共識營到學期活動，每一次都是文化塑造的機會。", priority: "核心" },
+      { topic: "例行事務規劃", block: "制度", blockColor: "#8B6B3D", why: "你需要從全校層級思考常規節奏的設計，確保非認知能力的練習有制度化的時間和空間。", priority: "核心" },
+      { topic: "圍圈指南", block: "制度", blockColor: "#8B6B3D", why: "圍圈不只是一個活動，而是全校對話文化的基礎建設。你的支持決定它能否從班級推展到全校。", priority: "核心" },
+      { topic: "對話語言與姿態", block: "練習", blockColor: "#5A8A6E", why: "你跟教師的互動方式，就是教師跟學生互動方式的示範。領導者的一致性姿態會向下傳遞。", priority: "重要" },
+      { topic: "品格鍛鍊", block: "學習", blockColor: "#2E6B8A", why: "掌握品格教育的理論框架，讓你在對外溝通和對內決策時有清晰的論述依據。", priority: "重要" },
+      { topic: "微時刻故事", block: "事件", blockColor: "#8B5A6B", why: "看見各校的真實故事，啟發你思考自己學校的推動方向和可能性。", priority: "延伸" },
+    ],
+  },
+};
+
+// ========== PAGES ==========
+
+function HomePage({ onNavigate }) {
+  const [activeBlock, setActiveBlock] = useState(null);
+  const blockEntries = Object.entries(TOPICS);
+
+  return (
+    <div>
+      {/* Hero */}
+      <section style={{
+        background: "linear-gradient(165deg, #1B3A5C 0%, #2E6B8A 55%, #5A8A6E 100%)",
+        padding: "56px 32px 48px", position: "relative", overflow: "hidden",
+      }}>
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+          background: "radial-gradient(circle at 20% 80%, rgba(255,255,255,0.06) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.04) 0%, transparent 40%)",
+          pointerEvents: "none",
+        }} />
+        <div style={{ maxWidth: 800, margin: "0 auto", position: "relative" }}>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 500, letterSpacing: "0.15em", marginBottom: 12 }}>KIST 聯盟學校</div>
+          <h1 style={{ fontSize: 32, fontWeight: 700, color: "#FFFFFF", lineHeight: 1.4, margin: 0, marginBottom: 14 }}>
+            School-Wide<br />全校性非認知能力推動實踐框架
+          </h1>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.78)", lineHeight: 1.75, margin: 0, maxWidth: 560 }}>
+            從教師自身的覺察出發，透過學習、練習、制度與事件的系統整合，讓非認知能力教學成為全校的文化。
+          </p>
+        </div>
+      </section>
+
+      {/* Gateway: Teacher Wellbeing */}
+      <section style={{ maxWidth: 800, margin: "0 auto", padding: "0 32px" }}>
+        <div style={{
+          background: "linear-gradient(135deg, #FFF9F0 0%, #FFFFFF 100%)",
+          border: "1.5px solid #E8D8C0", borderRadius: 14,
+          padding: "24px 28px", marginTop: -28, position: "relative", zIndex: 10,
+          boxShadow: "0 4px 20px rgba(180,155,110,0.1)", cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 20,
+          transition: "all 0.3s ease",
+        }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 12,
+            background: "linear-gradient(135deg, #F0E0C8 0%, #E8D0B0 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0,
+          }}>🌱</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#B49B6E", background: "#F8F0E0", padding: "2px 8px", borderRadius: 4, letterSpacing: "0.05em" }}>入門磚</span>
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#2C3E50", marginBottom: 4 }}>教師幸福感與覺察啟動</div>
+            <div style={{ fontSize: 13, color: "#8896A6", lineHeight: 1.6 }}>在探索任何教學策略之前，先與自己連結——教師自身的幸福感和覺察是一切的起點。</div>
+          </div>
+          <div style={{ color: "#B49B6E", fontSize: 20, flexShrink: 0 }}>→</div>
+        </div>
+      </section>
+
+      {/* Framework - Circular Layout */}
+      <section style={{ maxWidth: 800, margin: "0 auto", padding: "40px 32px" }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#8896A6", letterSpacing: "0.12em", marginBottom: 8 }}>SCHOOL-WIDE 推動架構</div>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: "#2C3E50", margin: 0, marginBottom: 8 }}>全校性推動的四個面向</h2>
+          <p style={{ fontSize: 14, color: "#8896A6", margin: 0, lineHeight: 1.6 }}>四個面向同時運作於校園之中，共同形塑全校的文化</p>
+        </div>
+
+        {/* The Oval / Circle Container */}
+        <div style={{
+          position: "relative",
+          border: "2.5px solid #C8B89C",
+          borderRadius: "50%",
+          aspectRatio: "1 / 0.85",
+          maxWidth: 680,
+          margin: "0 auto",
+          background: "radial-gradient(ellipse at center, rgba(248,244,238,0.3) 0%, rgba(250,251,252,0.1) 70%)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "visible",
+        }}>
+          {/* Culture label - top */}
+          <div style={{
+            position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)",
+            background: "#FAFBFC", padding: "2px 20px",
+            fontSize: 13, fontWeight: 600, color: "#B49B6E", letterSpacing: "0.12em", whiteSpace: "nowrap",
+          }}>✦ 文化 CULTURE ✦</div>
+
+          {/* School-Wide label - right */}
+          <div style={{
+            position: "absolute", right: -14, top: "50%", transform: "translateY(-50%) rotate(90deg)",
+            background: "#FAFBFC", padding: "2px 16px",
+            fontSize: 11, fontWeight: 600, color: "#8896A6", letterSpacing: "0.1em", whiteSpace: "nowrap",
+          }}>SCHOOL-WIDE</div>
+
+          {/* Strategy center */}
+          <div style={{
+            position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+            background: "#1B3A5C", color: "#fff", fontSize: 12, fontWeight: 600,
+            padding: "6px 16px", borderRadius: 20, letterSpacing: "0.08em",
+            boxShadow: "0 3px 12px rgba(27,58,92,0.25)", zIndex: 5,
+          }}>策略</div>
+
+          {/* Connecting lines from center */}
+          <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1 }}>
+            {/* Center to top-left */}
+            <line x1="50%" y1="50%" x2="30%" y2="30%" stroke="#D0C8BC" strokeWidth="1.5" strokeDasharray="4,4" />
+            {/* Center to top-right */}
+            <line x1="50%" y1="50%" x2="70%" y2="30%" stroke="#D0C8BC" strokeWidth="1.5" strokeDasharray="4,4" />
+            {/* Center to bottom-left */}
+            <line x1="50%" y1="50%" x2="30%" y2="70%" stroke="#D0C8BC" strokeWidth="1.5" strokeDasharray="4,4" />
+            {/* Center to bottom-right */}
+            <line x1="50%" y1="50%" x2="70%" y2="70%" stroke="#D0C8BC" strokeWidth="1.5" strokeDasharray="4,4" />
+          </svg>
+
+          {/* 4 Blocks in 2x2 grid inside the oval */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 20,
+            padding: "15% 12%",
+            width: "100%",
+            boxSizing: "border-box",
+            position: "relative",
+            zIndex: 2,
+          }}>
+            {blockEntries.map(([key, block], idx) => (
+              <FrameworkBlock
+                key={key}
+                blockKey={key}
+                block={block}
+                isActive={activeBlock === key}
+                onClick={() => setActiveBlock(activeBlock === key ? null : key)}
+              />
+            ))}
+          </div>
+        </div>
+
+
+
+        {/* Expanded topics panel */}
+        {activeBlock && (
+          <div style={{
+            maxWidth: 680, margin: "24px auto 0",
+            background: "#FFFFFF",
+            border: `2px solid ${TOPICS[activeBlock].color}`,
+            borderRadius: 16,
+            padding: "24px",
+            boxShadow: `0 4px 20px ${TOPICS[activeBlock].color}12`,
+            animation: "fadeIn 0.3s ease",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div style={{
+                background: TOPICS[activeBlock].color, color: "#fff",
+                width: 36, height: 36, borderRadius: 8,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontWeight: 700, fontSize: 14,
+              }}>{TOPICS[activeBlock].label}</div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#2C3E50" }}>{TOPICS[activeBlock].label}：{TOPICS[activeBlock].subtitle}</div>
+                <div style={{ fontSize: 12, color: "#8896A6" }}>點擊主題探索詳細內容</div>
+              </div>
+            </div>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: TOPICS[activeBlock].items.length <= 2 ? "1fr 1fr" : "1fr 1fr 1fr",
+              gap: 10,
+            }}>
+              {TOPICS[activeBlock].items.map(item => (
+                <TopicCard
+                  key={item.id}
+                  item={item}
+                  blockColor={TOPICS[activeBlock].color}
+                  lightColor={TOPICS[activeBlock].lightColor}
+                  borderColor={TOPICS[activeBlock].borderColor}
+                  onClick={() => item.id === "circle" && onNavigate("topic")}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Role Guidance */}
+      <section style={{ maxWidth: 800, margin: "0 auto", padding: "8px 32px 48px" }}>
+        <div style={{
+          background: "#FFFFFF", borderRadius: 16,
+          border: "1px solid #ECEEF1", padding: "32px 28px",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.03)",
+        }}>
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#B49B6E", letterSpacing: "0.1em", marginBottom: 8 }}>不知道從哪裡開始？</div>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: "#2C3E50", margin: 0, marginBottom: 6 }}>從你的角色開始</h3>
+            <p style={{ fontSize: 13, color: "#8896A6", margin: 0, lineHeight: 1.6 }}>選擇你的職務身份，獲得專屬的推動脈絡說明與建議探索順序</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 }}>
+            {ROLES.map(role => <RoleCard key={role.id} role={role} onClick={() => onNavigate("role-" + role.id)} />)}
+          </div>
+        </div>
+      </section>
+
+      {/* Theory Link */}
+      <section style={{ maxWidth: 800, margin: "0 auto", padding: "0 32px 48px" }}>
+        <div style={{
+          background: "#F4F6F8", borderRadius: 12, padding: "20px 24px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          cursor: "pointer", transition: "all 0.25s ease", border: "1px solid transparent",
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = "#EDF0F4"; e.currentTarget.style.borderColor = "#D0D8E0"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "#F4F6F8"; e.currentTarget.style.borderColor = "transparent"; }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: "#E4E8EE", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📖</div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#2C3E50", marginBottom: 2 }}>認識非認知能力</div>
+              <div style={{ fontSize: 12, color: "#8896A6" }}>Building Blocks、CASEL、品格與 SEL 的理論基礎（選讀）</div>
+            </div>
+          </div>
+          <div style={{ color: "#8896A6", fontSize: 18 }}>→</div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TopicPage({ onNavigate }) {
+  const [activeRole, setActiveRole] = useState(null);
+  const block = TOPICS.system;
+
+  const roleHints = {
+    homeroom: "圍圈是你班級經營的核心工具。建議從班級圍圈開始，每週至少一次，讓學生練習傾聽與表達。搭配班週會時間進行效果最佳。",
+    noncog: "你可以將圍圈作為 SEL 課程或品格課的固定環節，設計主題式圍圈搭配課程目標。",
+    subject: "學科教學中也可以善用圍圈，例如在討論開放式問題或進行學習反思時，圍圈能創造平等對話的氛圍。",
+    admin: "你的角色是建立全校圍圈的制度——排定時間、確保空間、支持教師帶領。制度穩定是圍圈成為文化的關鍵。",
+    leader: "你需要從全校層級思考圍圈的定位：它不只是一個活動，而是全校對話文化的基礎建設。",
+  };
+
+  return (
+    <div>
+      {/* Breadcrumb / Topic header */}
+      <section style={{
+        background: "linear-gradient(165deg, #1B3A5C 0%, #3D7EA6 100%)",
+        padding: "32px 32px 36px",
+      }}>
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <div
+            onClick={() => onNavigate("home")}
+            style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <span>←</span> <span>回到全貌圖</span>
+            <span style={{ margin: "0 4px" }}>·</span>
+            <span style={{
+              background: "rgba(255,255,255,0.15)", padding: "2px 8px", borderRadius: 4,
+              fontSize: 11, fontWeight: 500,
+            }}>制度</span>
+          </div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: "#FFFFFF", margin: 0, marginBottom: 8 }}>圍圈指南</h1>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", lineHeight: 1.6, margin: 0, maxWidth: 520 }}>
+            圍圈是 KIST 學校建立全校性對話文化的核心制度，透過固定的圍圈時間，讓師生練習傾聽、反思與回饋。
+          </p>
+        </div>
+      </section>
+
+      <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 32px" }}>
+        {/* Role hints - collapsible */}
+        <div style={{
+          background: "#FFFFFF", borderRadius: 12, border: "1.5px solid #E8E0D4",
+          padding: "16px 20px", marginTop: -20, position: "relative", zIndex: 10,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#6B5D4D", marginBottom: 10 }}>💡 你的角色是？</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {ROLES.map(role => (
+              <button
+                key={role.id}
+                onClick={() => setActiveRole(activeRole === role.id ? null : role.id)}
+                style={{
+                  background: activeRole === role.id ? "#F0E0C8" : "#F8F4EE",
+                  border: `1px solid ${activeRole === role.id ? "#C8A96E" : "#E8E0D4"}`,
+                  borderRadius: 6, padding: "5px 12px", cursor: "pointer",
+                  fontSize: 12, fontWeight: 500,
+                  color: activeRole === role.id ? "#6B5D4D" : "#8896A6",
+                  transition: "all 0.2s ease",
+                }}
+              >{role.label}</button>
+            ))}
+          </div>
+          {activeRole && (
+            <div style={{
+              marginTop: 12, padding: "12px 14px", background: "#FFF9F0",
+              borderRadius: 8, fontSize: 13, color: "#6B5D4D", lineHeight: 1.7,
+              borderLeft: "3px solid #C8A96E",
+            }}>
+              {roleHints[activeRole]}
+            </div>
+          )}
+        </div>
+
+        {/* Sub-section: 班級圍圈 */}
+        <div style={{ marginTop: 32 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <div style={{ width: 4, height: 22, borderRadius: 2, background: block.color }} />
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#2C3E50", margin: 0 }}>班級圍圈</h2>
+            <span style={{ fontSize: 12, color: "#A0AAB6" }}>反思、回饋與事件討論</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {SAMPLE_RESOURCES.map(r => <ResourceCard key={r.id} resource={r} />)}
+          </div>
+        </div>
+
+        {/* Sub-section: 全校圍圈 */}
+        <div style={{ marginTop: 36 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <div style={{ width: 4, height: 22, borderRadius: 2, background: block.color }} />
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#2C3E50", margin: 0 }}>全校圍圈</h2>
+            <span style={{ fontSize: 12, color: "#A0AAB6" }}>晨圈・品格圈・夕圈</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {SAMPLE_RESOURCES_2.map(r => <ResourceCard key={r.id} resource={r} />)}
+          </div>
+        </div>
+
+        {/* Experience Stories */}
+        <div style={{ marginTop: 36 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <span style={{ fontSize: 16 }}>📖</span>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#2C3E50", margin: 0 }}>實踐經驗</h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {SAMPLE_STORIES.map(s => <StoryCard key={s.id} story={s} />)}
+          </div>
+        </div>
+
+        {/* Related topics */}
+        <div style={{
+          marginTop: 36, marginBottom: 48,
+          padding: "16px 20px", background: "#F4F6F8", borderRadius: 10,
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <span style={{ fontSize: 12, color: "#8896A6", fontWeight: 600, flexShrink: 0 }}>🔗 相關主題</span>
+          <div style={{ display: "flex", gap: 8 }}>
+            {["對話語言與姿態", "SBIOR 事件復盤", "品格與成長型語言"].map(t => (
+              <span key={t} style={{
+                fontSize: 12, color: "#2E6B8A", background: "#E8F4F8",
+                padding: "4px 12px", borderRadius: 6, cursor: "pointer",
+                transition: "all 0.2s ease", fontWeight: 500,
+              }}
+                onMouseEnter={e => e.target.style.background = "#D5E8F0"}
+                onMouseLeave={e => e.target.style.background = "#E8F4F8"}
+              >{t}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RolePage({ roleId, onNavigate }) {
+  const role = ROLE_PATHS[roleId];
+  if (!role) return null;
+
+  const priorityColors = {
+    "核心": { bg: "#1B3A5C", text: "#FFFFFF" },
+    "重要": { bg: "#E8D8C0", text: "#6B5D4D" },
+    "延伸": { bg: "#ECEEF1", text: "#7F8C9B" },
+  };
+
+  return (
+    <div>
+      {/* Header */}
+      <section style={{
+        background: "linear-gradient(165deg, #1B3A5C 0%, #2E6B8A 60%, #3D7EA6 100%)",
+        padding: "32px 32px 40px",
+      }}>
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <div
+            onClick={() => onNavigate("home")}
+            style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", cursor: "pointer", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <span>←</span> <span>回到全貌圖</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 14,
+              background: "rgba(255,255,255,0.15)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 28,
+            }}>{role.icon}</div>
+            <div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 500, letterSpacing: "0.1em", marginBottom: 4 }}>角色引導</div>
+              <h1 style={{ fontSize: 26, fontWeight: 700, color: "#FFFFFF", margin: 0 }}>{role.label}</h1>
+            </div>
+          </div>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.75, margin: 0, marginTop: 16, maxWidth: 600 }}>
+            {role.intro}
+          </p>
+        </div>
+      </section>
+
+      {/* Path */}
+      <section style={{ maxWidth: 800, margin: "0 auto", padding: "36px 32px 48px" }}>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#2C3E50", margin: 0, marginBottom: 6 }}>建議探索路徑</h2>
+              <p style={{ fontSize: 13, color: "#8896A6", margin: 0, lineHeight: 1.6 }}>
+                這是我們建議的探索順序，但你也可以根據自己的需求跳著走。
+              </p>
+            </div>
+            <a
+              href="#"
+              onClick={e => e.preventDefault()}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: "#F4F6F8", border: "1px solid #E0E4E8",
+                borderRadius: 8, padding: "8px 14px",
+                fontSize: 12, fontWeight: 500, color: "#5A6B7B",
+                textDecoration: "none", whiteSpace: "nowrap",
+                cursor: "pointer", transition: "all 0.2s ease", flexShrink: 0,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#EDF0F4"; e.currentTarget.style.borderColor = "#C0C8D2"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#F4F6F8"; e.currentTarget.style.borderColor = "#E0E4E8"; }}
+            >
+              <span style={{ fontSize: 14 }}>📄</span>
+              <span>路徑規劃說明</span>
+            </a>
+          </div>
+          <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+            {Object.entries(priorityColors).map(([label, colors]) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{
+                  display: "inline-block", width: 10, height: 10, borderRadius: 3,
+                  background: colors.bg,
+                }} />
+                <span style={{ fontSize: 12, color: "#8896A6" }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Path steps */}
+        <div style={{ position: "relative" }}>
+          {role.steps.map((step, idx) => {
+            const isLast = idx === role.steps.length - 1;
+            const pColor = priorityColors[step.priority];
+            return (
+              <div key={idx} style={{ display: "flex", gap: 0, minHeight: isLast ? "auto" : 1 }}>
+                {/* Left: number + line */}
+                <div style={{
+                  width: 48, display: "flex", flexDirection: "column", alignItems: "center",
+                  flexShrink: 0,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    background: pColor.bg, color: pColor.text,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 14, fontWeight: 700, flexShrink: 0,
+                    boxShadow: step.priority === "核心" ? "0 2px 8px rgba(27,58,92,0.25)" : "none",
+                  }}>{idx + 1}</div>
+                  {!isLast && (
+                    <div style={{
+                      width: 2, flex: 1, minHeight: 20,
+                      background: "linear-gradient(to bottom, #D0C8BC, #E8E0D4)",
+                      margin: "4px 0",
+                    }} />
+                  )}
+                </div>
+
+                {/* Right: content card */}
+                <PathStepCard step={step} onNavigate={onNavigate} />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Other roles */}
+        <div style={{
+          marginTop: 40, padding: "20px 24px",
+          background: "#F4F6F8", borderRadius: 12,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#6B5D4D", marginBottom: 12 }}>查看其他角色的路徑</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {Object.entries(ROLE_PATHS).filter(([id]) => id !== roleId).map(([id, r]) => (
+              <button
+                key={id}
+                onClick={() => onNavigate("role-" + id)}
+                style={{
+                  background: "#FFFFFF", border: "1px solid #E0E4E8",
+                  borderRadius: 8, padding: "8px 16px", cursor: "pointer",
+                  fontSize: 13, fontWeight: 500, color: "#4A5568",
+                  display: "flex", alignItems: "center", gap: 6,
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#C8A96E"; e.currentTarget.style.background = "#FFF9F0"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#E0E4E8"; e.currentTarget.style.background = "#FFFFFF"; }}
+              >
+                <span>{r.icon}</span>
+                <span>{r.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PathStepCard({ step, onNavigate }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => step.topic === "圍圈指南" && onNavigate("topic")}
+      style={{
+        flex: 1,
+        background: hovered ? "#FAFBFC" : "#FFFFFF",
+        border: `1.5px solid ${hovered ? step.blockColor : "#ECEEF1"}`,
+        borderRadius: 12,
+        padding: "16px 20px",
+        marginBottom: 12,
+        marginLeft: 8,
+        cursor: "pointer",
+        transition: "all 0.25s ease",
+        boxShadow: hovered ? `0 4px 16px ${step.blockColor}12` : "0 1px 4px rgba(0,0,0,0.03)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <span style={{
+          fontSize: 11, fontWeight: 600, color: step.blockColor,
+          background: step.blockColor + "14",
+          padding: "2px 8px", borderRadius: 4,
+        }}>{step.block}</span>
+        <span style={{
+          fontSize: 11, fontWeight: 600,
+          color: step.priority === "核心" ? "#1B3A5C" : step.priority === "重要" ? "#6B5D4D" : "#8896A6",
+        }}>{step.priority}</span>
+      </div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#2C3E50", marginBottom: 6 }}>{step.topic}</div>
+      <div style={{ fontSize: 13, color: "#7F8C9B", lineHeight: 1.65 }}>{step.why}</div>
+      {hovered && (
+        <div style={{ marginTop: 8, fontSize: 12, fontWeight: 500, color: step.blockColor }}>
+          前往主題 →
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ========== MAIN APP ==========
+
+export default function KISTPlatform() {
+  const [page, setPage] = useState("home");
+
+  return (
+    <div style={{
+      fontFamily: '"Noto Sans TC", "Helvetica Neue", "PingFang TC", sans-serif',
+      background: "#FAFBFC", minHeight: "100vh", color: "#2C3E50",
+    }}>
+      {/* Navigation */}
+      <nav style={{
+        background: "rgba(255,255,255,0.92)", borderBottom: "1px solid #ECEEF1",
+        padding: "0 32px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between",
+        position: "sticky", top: 0, zIndex: 100, backdropFilter: "blur(12px)",
+      }}>
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+          onClick={() => setPage("home")}
+        >
+          <div style={{ background: "#1B3A5C", color: "#fff", padding: "4px 10px", borderRadius: 6, fontSize: 13, fontWeight: 700, letterSpacing: "0.08em" }}>KIST</div>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "#4A5568", letterSpacing: "0.02em" }}>非認知能力學習資源平台</span>
+        </div>
+        <div style={{ display: "flex", gap: 24, fontSize: 13, color: "#7F8C9B" }}>
+          <span style={{ cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "#2C3E50"} onMouseLeave={e => e.target.style.color = "#7F8C9B"}>認識非認知能力</span>
+          <span style={{ cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "#2C3E50"} onMouseLeave={e => e.target.style.color = "#7F8C9B"}>從你的角色開始</span>
+        </div>
+      </nav>
+
+      {/* Page content */}
+      {page === "home" && <HomePage onNavigate={setPage} />}
+      {page === "topic" && <TopicPage onNavigate={setPage} />}
+      {page.startsWith("role-") && <RolePage roleId={page.replace("role-", "")} onNavigate={setPage} />}
+
+      {/* Footer */}
+      <footer style={{ borderTop: "1px solid #ECEEF1", padding: "24px 32px", textAlign: "center" }}>
+        <div style={{ fontSize: 12, color: "#A0AAB6" }}>誠致教育基金會・教學發展組</div>
+        <div style={{ fontSize: 11, color: "#C0C8D0", marginTop: 4 }}>給孩子公平發展天賦的舞台</div>
+      </footer>
+    </div>
+  );
+}
